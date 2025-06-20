@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   description:
     "Discover AURELIA, a luxury perfume that captures the delicate balance between strength and grace. Experience the fragrance that defines modern femininity.",
   keywords: "luxury perfume, AURELIA, fragrance, beauty, elegance, rose gold, feminine, Dior inspired",
-  generator: 'v0.dev',
 }
 
 export default function RootLayout({
