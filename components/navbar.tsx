@@ -10,56 +10,43 @@ interface NavbarProps {
 export default function Navbar({ onNavigate }: NavbarProps) {
   const navRef = useRef<HTMLElement>(null)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isClient, setIsClient] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsClient(true)
+    setIsMounted(true)
   }, [])
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
-    }
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 50)
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
   useEffect(() => {
-    if (!isClient) return
+    if (!isMounted) return
 
-    const loadGSAP = async () => {
+    const initGSAP = async () => {
+      // NO TIME DELAY
       const { gsap } = await import("gsap")
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
-
       gsap.set(navRef.current, {
-        y: -100,
+        y: -60,
         opacity: 0,
       })
 
       const animation = gsap.to(navRef.current, {
         y: 0,
         opacity: 1,
-        duration: 1,
+        duration: 0.8,
         ease: "power2.out",
-        delay: 0.5,
+        delay: 0.2, // Minimal delay
       })
 
-      return () => {
-        animation.kill()
-      }
+      return () => animation.kill()
     }
 
-    const cleanup = loadGSAP()
-    return () => {
-      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
-    }
-  }, [isClient])
-
-  if (!isClient) {
-    return <div className="h-20" />
-  }
+    initGSAP()
+  }, [isMounted])
 
   return (
     <nav
