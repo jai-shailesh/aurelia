@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-playfair: "Playfair Display", serif;
+  --font-inter: "Inter", sans-serif;
+
+  /* AURELIA Color Palette */
+  --blush-pink: #f5e6eb;
+  --rose-gold: #dca3ae;
+  --text-dark: #2d2d2d;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  cursor: none;
+}
+
+body {
+  font-family: var(--font-inter);
+  line-height: 1.6;
+  color: var(--text-dark);
+  cursor: none;
+}
+
+.font-serif {
+  font-family: var(--font-playfair);
+}
+
+/* Hide default cursor */
+* {
+  cursor: none !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5e6eb;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #dca3ae, #f43f5e);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #c1879a, #e11d48);
+}
+
+/* Smooth transitions for all elements */
+* {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Gradient utilities */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+/* Animation utilities */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Focus states for accessibility */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #f43f5e;
+  outline-offset: 2px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  html {
+    cursor: auto;
+  }
+
+  body {
+    cursor: auto;
+  }
+
+  * {
+    cursor: auto !important;
+  }
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Luxury text effects */
+.text-shadow-luxury {
+  text-shadow: 0 2px 4px rgba(220, 163, 174, 0.3);
+}
+
+/* High-end gradient backgrounds */
+.luxury-gradient {
+  background: linear-gradient(135deg, #f5e6eb 0%, #fce7f3 25%, #fbcfe8 50%, #f9a8d4 75%, #dca3ae 100%);
+}
+
+/* Smooth scroll for sections */
+section {
+  scroll-margin-top: 80px;
+}
+
+/* Enhanced backdrop blur for modern browsers */
+@supports (backdrop-filter: blur(20px)) {
+  .backdrop-blur-luxury {
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+}
