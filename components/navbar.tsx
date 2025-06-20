@@ -10,6 +10,11 @@ interface NavbarProps {
 export default function Navbar({ onNavigate }: NavbarProps) {
   const navRef = useRef<HTMLElement>(null)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,18 +26,40 @@ export default function Navbar({ onNavigate }: NavbarProps) {
   }, [])
 
   useEffect(() => {
+    if (!isClient) return
+
     const loadGSAP = async () => {
       const { gsap } = await import("gsap")
 
-      gsap.fromTo(
-        navRef.current,
-        { y: -100, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, ease: "power2.out", delay: 0.5 },
-      )
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      gsap.set(navRef.current, {
+        y: -100,
+        opacity: 0,
+      })
+
+      const animation = gsap.to(navRef.current, {
+        y: 0,
+        opacity: 1,
+        duration: 1,
+        ease: "power2.out",
+        delay: 0.5,
+      })
+
+      return () => {
+        animation.kill()
+      }
     }
 
-    loadGSAP()
-  }, [])
+    const cleanup = loadGSAP()
+    return () => {
+      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
+    }
+  }, [isClient])
+
+  if (!isClient) {
+    return <div className="h-20" />
+  }
 
   return (
     <nav

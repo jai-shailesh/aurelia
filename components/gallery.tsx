@@ -12,12 +12,11 @@ export default function Gallery() {
   const sectionRef = useRef<HTMLElement>(null)
   const galleryRef = useRef<HTMLDivElement>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
-  // Simple drag state
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState(0)
   const [dragCurrent, setDragCurrent] = useState(0)
   const timelineRef = useRef<any>(null)
-  const originalTransformRef = useRef<string>("")
+  const [isClient, setIsClient] = useState(false)
 
   const images = [
     { src: "/images/gallery1.png", alt: "AURELIA with silk ribbons and flowers" },
@@ -27,6 +26,10 @@ export default function Gallery() {
     { src: "/images/gallery5.png", alt: "AURELIA with roses and candles" },
   ]
 
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % images.length)
   }
@@ -35,7 +38,6 @@ export default function Gallery() {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  // Simple drag handlers
   const startDrag = (clientX: number) => {
     setIsDragging(true)
     setDragStart(clientX)
@@ -64,7 +66,6 @@ export default function Gallery() {
     }
   }
 
-  // Replace all the existing drag handlers with these:
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
     startDrag(e.clientX)
@@ -121,11 +122,17 @@ export default function Gallery() {
   }, [isDragging, dragStart])
 
   useEffect(() => {
+    if (!isClient) return
+
     const loadGSAP = async () => {
       const { gsap } = await import("gsap")
       const { ScrollTrigger } = await import("gsap/ScrollTrigger")
 
       gsap.registerPlugin(ScrollTrigger)
+
+      // Wait for DOM to be ready
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      ScrollTrigger.refresh()
 
       // Auto-scroll animation for desktop
       if (galleryRef.current && window.innerWidth >= 768) {
@@ -159,7 +166,7 @@ export default function Gallery() {
           gallery.addEventListener("mouseenter", pauseAnimation)
           gallery.addEventListener("mouseleave", resumeAnimation)
 
-          ScrollTrigger.create({
+          const scrollTrigger = ScrollTrigger.create({
             trigger: sectionRef.current,
             start: "top center",
             end: "bottom center",
@@ -178,13 +185,17 @@ export default function Gallery() {
             gallery.removeEventListener("mouseenter", pauseAnimation)
             gallery.removeEventListener("mouseleave", resumeAnimation)
             tl.kill()
+            scrollTrigger.kill()
           }
         }
       }
     }
 
-    loadGSAP()
-  }, [])
+    const cleanup = loadGSAP()
+    return () => {
+      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
+    }
+  }, [isClient])
 
   // Pause/resume animation based on drag state
   useEffect(() => {
@@ -196,6 +207,10 @@ export default function Gallery() {
       }
     }
   }, [isDragging])
+
+  if (!isClient) {
+    return <div className="min-h-screen bg-gradient-to-b from-pink-100 via-rose to-amber-50/30" />
+  }
 
   return (
     <section ref={sectionRef} className="py-12 md:py-32 bg-gradient-to-b from-pink-100 via-rose to-amber-50/30">

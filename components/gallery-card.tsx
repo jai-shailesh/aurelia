@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useState } from "react"
 import Image from "next/image"
 
 interface GalleryCardProps {
@@ -11,35 +11,60 @@ interface GalleryCardProps {
 
 export default function GalleryCard({ src, alt, index }: GalleryCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
     const loadGSAP = async () => {
       const { gsap } = await import("gsap")
       const { ScrollTrigger } = await import("gsap/ScrollTrigger")
 
       gsap.registerPlugin(ScrollTrigger)
 
-      gsap.fromTo(
-        cardRef.current,
-        { scale: 0.9, opacity: 0, y: 30 },
-        {
-          scale: 1,
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          ease: "power2.out",
-          delay: index * 0.2,
-          scrollTrigger: {
-            trigger: cardRef.current,
-            start: "top 85%",
-            toggleActions: "play none none reverse",
-          },
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      ScrollTrigger.refresh()
+
+      gsap.set(cardRef.current, {
+        scale: 0.9,
+        opacity: 0,
+        y: 30,
+      })
+
+      const animation = gsap.to(cardRef.current, {
+        scale: 1,
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: "power2.out",
+        delay: index * 0.2,
+        scrollTrigger: {
+          trigger: cardRef.current,
+          start: "top 85%",
+          toggleActions: "play none none reverse",
+          refreshPriority: -1,
         },
-      )
+      })
+
+      return () => {
+        animation.kill()
+        ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
+      }
     }
 
-    loadGSAP()
-  }, [index])
+    const cleanup = loadGSAP()
+    return () => {
+      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
+    }
+  }, [index, isClient])
+
+  if (!isClient) {
+    return <div className="aspect-[4/5] bg-gray-200 rounded-2xl" />
+  }
 
   return (
     <div

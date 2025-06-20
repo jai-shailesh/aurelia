@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 
@@ -17,10 +17,20 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
   const headlineRef = useRef<HTMLDivElement>(null)
   const subheadlineRef = useRef<HTMLDivElement>(null)
   const discoverRef = useRef<HTMLHeadingElement>(null)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
     const loadGSAP = async () => {
       const { gsap } = await import("gsap")
+
+      // Wait for DOM to be ready
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // Create floating particles
       if (particlesRef.current) {
@@ -46,30 +56,24 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
         })
       }
 
-      // Hero animations timeline
-      const tl = gsap.timeline({ delay: 1 })
-
-      // Title behind product (lower z-index)
+      // Set initial states
       gsap.set(titleRef.current, {
         scale: 0.8,
         opacity: 0,
         z: -10,
       })
 
-      // Product in center
       gsap.set(productRef.current, {
         scale: 0.7,
         opacity: 0,
         y: 50,
       })
 
-      // CTA below
       gsap.set(ctaRef.current, {
         y: 30,
         opacity: 0,
       })
 
-      // New text elements
       gsap.set(headlineRef.current, {
         x: -50,
         opacity: 0,
@@ -80,15 +84,17 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
         opacity: 0,
       })
 
-      // Discover heading
       gsap.set(discoverRef.current, {
         y: -20,
         opacity: 0,
       })
 
+      // Hero animations timeline
+      const tl = gsap.timeline({ delay: 1 })
+
       tl.to(titleRef.current, {
         scale: 1,
-        opacity: 0.1, // Subtle background text
+        opacity: 0.1,
         duration: 1.2,
         ease: "power2.out",
       })
@@ -152,10 +158,22 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
         yoyo: true,
         ease: "power1.inOut",
       })
+
+      return () => {
+        tl.kill()
+        gsap.killTweensOf([productRef.current, particlesRef.current?.children])
+      }
     }
 
-    loadGSAP()
-  }, [])
+    const cleanup = loadGSAP()
+    return () => {
+      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
+    }
+  }, [isClient])
+
+  if (!isClient) {
+    return <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-rose-100" />
+  }
 
   return (
     <section ref={heroRef} className="min-h-screen flex items-center justify-center relative overflow-hidden">

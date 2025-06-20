@@ -1,37 +1,61 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Instagram, Facebook, Twitter } from "lucide-react"
 
 export default function Footer() {
   const footerRef = useRef<HTMLElement>(null)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
     const loadGSAP = async () => {
       const { gsap } = await import("gsap")
       const { ScrollTrigger } = await import("gsap/ScrollTrigger")
 
       gsap.registerPlugin(ScrollTrigger)
 
-      gsap.fromTo(
-        footerRef.current,
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: footerRef.current,
-            start: "top 90%",
-            toggleActions: "play none none reverse",
-          },
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      ScrollTrigger.refresh()
+
+      gsap.set(footerRef.current, {
+        y: 30,
+        opacity: 0,
+      })
+
+      const animation = gsap.to(footerRef.current, {
+        y: 0,
+        opacity: 1,
+        duration: 1,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: footerRef.current,
+          start: "top 90%",
+          toggleActions: "play none none reverse",
+          refreshPriority: -1,
         },
-      )
+      })
+
+      return () => {
+        animation.kill()
+        ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
+      }
     }
 
-    loadGSAP()
-  }, [])
+    const cleanup = loadGSAP()
+    return () => {
+      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
+    }
+  }, [isClient])
+
+  if (!isClient) {
+    return <div className="min-h-[200px]" />
+  }
 
   return (
     <footer ref={footerRef} className="py-4 px-6 bg-gradient-to-r from-rose-900 to-pink-900 text-white">
