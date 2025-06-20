@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export default function About() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -8,41 +8,57 @@ export default function About() {
   const descriptionRef = useRef<HTMLDivElement>(null)
   const notesRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
     const loadGSAP = async () => {
       const { gsap } = await import("gsap")
       const { ScrollTrigger } = await import("gsap/ScrollTrigger")
 
       gsap.registerPlugin(ScrollTrigger)
 
-      // Create a timeline for coordinated animations - made faster
+      // Wait for next tick to ensure DOM is ready
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // Refresh ScrollTrigger to recalculate positions
+      ScrollTrigger.refresh()
+
+      // Create a timeline for coordinated animations
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top 80%",
           end: "bottom 20%",
           toggleActions: "play none none reverse",
+          refreshPriority: -1, // Lower priority for better performance
         },
       })
 
+      // Set initial states
+      gsap.set([titleRef.current, descriptionRef.current?.children, notesRef.current?.children], {
+        opacity: 0,
+        y: 40,
+        scale: 0.95,
+      })
+
       // Animate main description box
-      tl.fromTo(
-        titleRef.current,
-        { y: 40, opacity: 0, scale: 0.95 },
-        {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          duration: 0.6,
-          ease: "power3.out",
-        },
-      )
+      tl.to(titleRef.current, {
+        y: 0,
+        opacity: 1,
+        scale: 1,
+        duration: 0.6,
+        ease: "power3.out",
+      })
 
       // Animate description content
-      tl.fromTo(
+      tl.to(
         descriptionRef.current?.children,
-        { y: 20, opacity: 0 },
         {
           y: 0,
           opacity: 1,
@@ -54,9 +70,8 @@ export default function About() {
       )
 
       // Animate notes boxes with quick stagger
-      tl.fromTo(
+      tl.to(
         notesRef.current?.children,
-        { y: 30, opacity: 0, scale: 0.95 },
         {
           y: 0,
           opacity: 1,
@@ -67,10 +82,25 @@ export default function About() {
         },
         "-=0.3",
       )
+
+      // Cleanup function
+      return () => {
+        tl.kill()
+        ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
+      }
     }
 
-    loadGSAP()
-  }, [])
+    const cleanup = loadGSAP()
+
+    return () => {
+      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
+    }
+  }, [isClient])
+
+  // Don't render until client-side
+  if (!isClient) {
+    return <div className="min-h-screen" /> // Placeholder to prevent layout shift
+  }
 
   return (
     <section ref={sectionRef} className="relative py-8 md:py-12 px-4 md:px-6 overflow-hidden">
