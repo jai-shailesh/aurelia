@@ -5,60 +5,68 @@ import { Instagram, Facebook, Twitter } from "lucide-react"
 
 export default function Footer() {
   const footerRef = useRef<HTMLElement>(null)
-  const [isClient, setIsClient] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsClient(true)
+    setIsMounted(true)
   }, [])
 
   useEffect(() => {
-    if (!isClient) return
+    if (!isMounted) return
 
-    const loadGSAP = async () => {
+    const initGSAP = async () => {
+      // NO TIME DELAY
       const { gsap } = await import("gsap")
       const { ScrollTrigger } = await import("gsap/ScrollTrigger")
 
       gsap.registerPlugin(ScrollTrigger)
-
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      ScrollTrigger.refresh()
+      ScrollTrigger.refresh(true)
 
       gsap.set(footerRef.current, {
-        y: 30,
+        y: 50,
         opacity: 0,
+        visibility: "visible",
       })
 
-      const animation = gsap.to(footerRef.current, {
+      const tl = gsap.timeline({ paused: true })
+
+      tl.to(footerRef.current, {
         y: 0,
         opacity: 1,
         duration: 1,
         ease: "power2.out",
-        scrollTrigger: {
-          trigger: footerRef.current,
-          start: "top 90%",
-          toggleActions: "play none none reverse",
-          refreshPriority: -1,
-        },
       })
 
+      ScrollTrigger.create({
+        trigger: footerRef.current,
+        start: "top 90%",
+        onEnter: () => {
+          console.log("Footer section entered")
+          tl.play()
+        },
+        onLeave: () => tl.reverse(),
+        onEnterBack: () => tl.play(),
+        onLeaveBack: () => tl.reverse(),
+        markers: process.env.NODE_ENV === "development",
+      })
+
+      ScrollTrigger.refresh()
+
       return () => {
-        animation.kill()
+        tl.kill()
         ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
       }
     }
 
-    const cleanup = loadGSAP()
-    return () => {
-      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
-    }
-  }, [isClient])
-
-  if (!isClient) {
-    return <div className="min-h-[200px]" />
-  }
+    initGSAP()
+  }, [isMounted])
 
   return (
-    <footer ref={footerRef} className="py-4 px-6 bg-gradient-to-r from-rose-900 to-pink-900 text-white">
+    <footer
+      ref={footerRef}
+      className="py-4 px-6 bg-gradient-to-r from-rose-900 to-pink-900 text-white"
+      style={{ visibility: "hidden" }}
+    >
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-3 gap-12 mb-12">
           <div className="space-y-4">

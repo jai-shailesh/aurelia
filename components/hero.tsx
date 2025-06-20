@@ -17,24 +17,22 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
   const headlineRef = useRef<HTMLDivElement>(null)
   const subheadlineRef = useRef<HTMLDivElement>(null)
   const discoverRef = useRef<HTMLHeadingElement>(null)
-  const [isClient, setIsClient] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsClient(true)
+    setIsMounted(true)
   }, [])
 
   useEffect(() => {
-    if (!isClient) return
+    if (!isMounted) return
 
-    const loadGSAP = async () => {
+    const initGSAP = async () => {
+      // NO TIME DELAY - immediate start
       const { gsap } = await import("gsap")
 
-      // Wait for DOM to be ready
-      await new Promise((resolve) => setTimeout(resolve, 200))
-
-      // Create floating particles
+      // Create particles
       if (particlesRef.current) {
-        const particles = Array.from({ length: 20 }, (_, i) => {
+        const particles = Array.from({ length: 15 }, (_, i) => {
           const particle = document.createElement("div")
           particle.className = "absolute w-1 h-1 bg-rose-300/40 rounded-full"
           particle.style.left = `${Math.random() * 100}%`
@@ -45,115 +43,53 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
 
         particles.forEach((particle, i) => {
           gsap.to(particle, {
-            y: -100,
-            x: Math.random() * 100 - 50,
+            y: -80,
+            x: Math.random() * 80 - 40,
             opacity: 0,
-            duration: 3 + Math.random() * 2,
+            duration: 2.5 + Math.random() * 1.5,
             repeat: -1,
-            delay: i * 0.2,
+            delay: i * 0.15,
             ease: "power1.out",
           })
         })
       }
 
       // Set initial states
-      gsap.set(titleRef.current, {
-        scale: 0.8,
-        opacity: 0,
-        z: -10,
-      })
-
-      gsap.set(productRef.current, {
-        scale: 0.7,
-        opacity: 0,
-        y: 50,
-      })
-
-      gsap.set(ctaRef.current, {
-        y: 30,
-        opacity: 0,
-      })
-
-      gsap.set(headlineRef.current, {
-        x: -50,
-        opacity: 0,
-      })
-
-      gsap.set(subheadlineRef.current, {
-        x: 50,
-        opacity: 0,
-      })
-
-      gsap.set(discoverRef.current, {
-        y: -20,
-        opacity: 0,
-      })
-
-      // Hero animations timeline
-      const tl = gsap.timeline({ delay: 1 })
-
-      tl.to(titleRef.current, {
-        scale: 1,
-        opacity: 0.1,
-        duration: 1.2,
-        ease: "power2.out",
-      })
-        .to(
-          discoverRef.current,
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            ease: "power2.out",
-          },
-          "-=0.8",
-        )
-        .to(
+      gsap.set(
+        [
+          titleRef.current,
           productRef.current,
-          {
-            scale: 1,
-            opacity: 1,
-            y: 0,
-            duration: 1.5,
-            ease: "back.out(1.7)",
-          },
-          "-=0.8",
-        )
-        .to(
-          headlineRef.current,
-          {
-            x: 0,
-            opacity: 1,
-            duration: 0.8,
-            ease: "power2.out",
-          },
-          "-=0.6",
-        )
-        .to(
-          subheadlineRef.current,
-          {
-            x: 0,
-            opacity: 1,
-            duration: 0.8,
-            ease: "power2.out",
-          },
-          "-=0.6",
-        )
-        .to(
           ctaRef.current,
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            ease: "power2.out",
-          },
-          "-=0.4",
-        )
+          headlineRef.current,
+          subheadlineRef.current,
+          discoverRef.current,
+        ],
+        {
+          opacity: 0,
+        },
+      )
 
-      // Continuous product float animation
+      gsap.set(titleRef.current, { scale: 0.9 })
+      gsap.set(productRef.current, { scale: 0.8, y: 30 })
+      gsap.set(ctaRef.current, { y: 20 })
+      gsap.set(headlineRef.current, { x: -30 })
+      gsap.set(subheadlineRef.current, { x: 30 })
+      gsap.set(discoverRef.current, { y: -15 })
+
+      // Animation timeline - starts immediately, no delay
+      const tl = gsap.timeline({ delay: 0.5 }) // Minimal delay
+
+      tl.to(titleRef.current, { scale: 1, opacity: 0.1, duration: 0.8, ease: "power2.out" })
+        .to(discoverRef.current, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, "-=0.6")
+        .to(productRef.current, { scale: 1, opacity: 1, y: 0, duration: 1, ease: "back.out(1.4)" }, "-=0.6")
+        .to(headlineRef.current, { x: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, "-=0.4")
+        .to(subheadlineRef.current, { x: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, "-=0.5")
+        .to(ctaRef.current, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, "-=0.3")
+
+      // Float animation
       gsap.to(productRef.current, {
-        y: -10,
-        duration: 3,
+        y: -8,
+        duration: 2.5,
         repeat: -1,
         yoyo: true,
         ease: "power1.inOut",
@@ -165,25 +101,14 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
       }
     }
 
-    const cleanup = loadGSAP()
-    return () => {
-      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
-    }
-  }, [isClient])
-
-  if (!isClient) {
-    return <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-rose-100" />
-  }
+    initGSAP()
+  }, [isMounted])
 
   return (
     <section ref={heroRef} className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Floating particles background */}
       <div ref={particlesRef} className="absolute inset-0 pointer-events-none" />
-
-      {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-pink-50 to-rose-100" />
 
-      {/* Subheadline - Bottom Right - Hidden on mobile */}
       <div
         ref={subheadlineRef}
         className="hidden md:block absolute bottom-4 md:bottom-8 right-4 md:right-8 z-30 max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl text-right"
@@ -211,7 +136,6 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
       </div>
 
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
-        {/* Discover heading - Responsive */}
         <h1
           ref={discoverRef}
           className="absolute -top-8 sm:-top-6 md:-top-4 lg:-top-2 left-1/2 transform -translate-x-1/2 z-15 text-center px-4 max-w-xs sm:max-w-sm md:max-w-none md:whitespace-nowrap"
@@ -227,7 +151,6 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
           </span>
         </h1>
 
-        {/* Background Title */}
         <div
           ref={titleRef}
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
@@ -238,7 +161,6 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
           </h1>
         </div>
 
-        {/* Product Image - Center */}
         <div ref={productRef} className="relative z-20 mb-8">
           <Image
             src="/images/hero-product.png"
@@ -251,30 +173,10 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
           <div className="absolute inset-0 bg-gradient-radial from-rose-200/20 via-transparent to-transparent blur-3xl" />
         </div>
 
-        {/* CTA Section - Closer to product */}
         <div ref={ctaRef} className="relative z-20">
           <Button
             onClick={onJoinWaitlist}
-            className="
-              px-6 py-3 sm:px-8 sm:py-4 
-              bg-gradient-to-r from-pink-200 to-rose-300 
-              border border-yellow-400 
-              text-rose-900 
-              font-black 
-              uppercase 
-              tracking-wide 
-              rounded-sm 
-              hover:bg-gradient-to-r 
-              hover:from-yellow-500 
-              hover:to-yellow-600 
-              hover:text-white 
-              transition-all 
-              duration-300 
-              ease-in-out
-              shadow-lg
-              hover:shadow-xl
-              text-sm sm:text-base
-            "
+            className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-pink-200 to-rose-300 border border-yellow-400 text-rose-900 font-black uppercase tracking-wide rounded-sm hover:bg-gradient-to-r hover:from-yellow-500 hover:to-yellow-600 hover:text-white transition-all duration-300 ease-in-out shadow-lg hover:shadow-xl text-sm sm:text-base"
           >
             Join the Waiting List
           </Button>

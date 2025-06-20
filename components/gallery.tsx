@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useRef, useState } from "react"
 import SectionTitle from "./section-title"
 import GalleryCard from "./gallery-card"
@@ -14,9 +13,8 @@ export default function Gallery() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState(0)
-  const [dragCurrent, setDragCurrent] = useState(0)
   const timelineRef = useRef<any>(null)
-  const [isClient, setIsClient] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   const images = [
     { src: "/images/gallery1.png", alt: "AURELIA with silk ribbons and flowers" },
@@ -27,29 +25,20 @@ export default function Gallery() {
   ]
 
   useEffect(() => {
-    setIsClient(true)
+    setIsMounted(true)
   }, [])
 
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length)
-  }
-
-  const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
-  }
+  const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % images.length)
+  const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
 
   const startDrag = (clientX: number) => {
     setIsDragging(true)
     setDragStart(clientX)
-    setDragCurrent(clientX)
-    if (timelineRef.current) {
-      timelineRef.current.pause()
-    }
+    if (timelineRef.current) timelineRef.current.pause()
   }
 
   const updateDrag = (clientX: number) => {
     if (!isDragging) return
-    setDragCurrent(clientX)
     const diff = clientX - dragStart
     if (galleryRef.current) {
       galleryRef.current.style.transform = `translateX(${diff}px)`
@@ -58,12 +47,8 @@ export default function Gallery() {
 
   const endDrag = () => {
     setIsDragging(false)
-    if (galleryRef.current) {
-      galleryRef.current.style.transform = ""
-    }
-    if (timelineRef.current) {
-      timelineRef.current.resume()
-    }
+    if (galleryRef.current) galleryRef.current.style.transform = ""
+    if (timelineRef.current) timelineRef.current.resume()
   }
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -78,14 +63,7 @@ export default function Gallery() {
     }
   }
 
-  const handleMouseUp = () => {
-    endDrag()
-  }
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startDrag(e.touches[0].clientX)
-  }
-
+  const handleTouchStart = (e: React.TouchEvent) => startDrag(e.touches[0].clientX)
   const handleTouchMove = (e: React.TouchEvent) => {
     if (isDragging) {
       e.preventDefault()
@@ -93,21 +71,12 @@ export default function Gallery() {
     }
   }
 
-  const handleTouchEnd = () => {
-    endDrag()
-  }
-
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
-        updateDrag(e.clientX)
-      }
+      if (isDragging) updateDrag(e.clientX)
     }
-
     const handleGlobalMouseUp = () => {
-      if (isDragging) {
-        endDrag()
-      }
+      if (isDragging) endDrag()
     }
 
     if (isDragging) {
@@ -122,29 +91,27 @@ export default function Gallery() {
   }, [isDragging, dragStart])
 
   useEffect(() => {
-    if (!isClient) return
+    if (!isMounted) return
 
-    const loadGSAP = async () => {
+    const initGSAP = async () => {
+      // NO TIME DELAY
       const { gsap } = await import("gsap")
       const { ScrollTrigger } = await import("gsap/ScrollTrigger")
 
       gsap.registerPlugin(ScrollTrigger)
+      ScrollTrigger.refresh(true)
 
-      // Wait for DOM to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      ScrollTrigger.refresh()
-
-      // Auto-scroll animation for desktop
+      // Auto-scroll for desktop only - controlled by ScrollTrigger
       if (galleryRef.current && window.innerWidth >= 768) {
         const gallery = galleryRef.current
         const galleryWidth = gallery.scrollWidth
         const viewportWidth = gallery.clientWidth
 
-        // Only animate if content is wider than viewport
         if (galleryWidth > viewportWidth) {
           const tl = gsap.timeline({
             repeat: -1,
             ease: "none",
+            paused: true,
           })
 
           tl.to(gallery, {
@@ -157,7 +124,6 @@ export default function Gallery() {
 
           timelineRef.current = tl
 
-          // Hover pause/resume
           const pauseAnimation = () => tl.pause()
           const resumeAnimation = () => {
             if (!isDragging) tl.resume()
@@ -166,58 +132,50 @@ export default function Gallery() {
           gallery.addEventListener("mouseenter", pauseAnimation)
           gallery.addEventListener("mouseleave", resumeAnimation)
 
-          const scrollTrigger = ScrollTrigger.create({
+          // PURE SCROLL TRIGGER - no delays
+          ScrollTrigger.create({
             trigger: sectionRef.current,
-            start: "top center",
-            end: "bottom center",
+            start: "top 60%",
+            end: "bottom 40%",
             onEnter: () => {
+              console.log("Gallery section entered")
               if (!isDragging) tl.play()
             },
-            onLeave: () => tl.pause(),
+            onLeave: () => {
+              console.log("Gallery section left")
+              tl.pause()
+            },
             onEnterBack: () => {
+              console.log("Gallery section entered back")
               if (!isDragging) tl.play()
             },
-            onLeaveBack: () => tl.pause(),
+            onLeaveBack: () => {
+              console.log("Gallery section left back")
+              tl.pause()
+            },
+            markers: process.env.NODE_ENV === "development",
           })
 
-          // Cleanup
+          ScrollTrigger.refresh()
+
           return () => {
             gallery.removeEventListener("mouseenter", pauseAnimation)
             gallery.removeEventListener("mouseleave", resumeAnimation)
             tl.kill()
-            scrollTrigger.kill()
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
           }
         }
       }
     }
 
-    const cleanup = loadGSAP()
-    return () => {
-      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
-    }
-  }, [isClient])
-
-  // Pause/resume animation based on drag state
-  useEffect(() => {
-    if (timelineRef.current) {
-      if (isDragging) {
-        timelineRef.current.pause()
-      } else {
-        timelineRef.current.resume()
-      }
-    }
-  }, [isDragging])
-
-  if (!isClient) {
-    return <div className="min-h-screen bg-gradient-to-b from-pink-100 via-rose to-amber-50/30" />
-  }
+    initGSAP()
+  }, [isMounted])
 
   return (
     <section ref={sectionRef} className="py-12 md:py-32 bg-gradient-to-b from-pink-100 via-rose to-amber-50/30">
       <div className="max-w-7xl mx-auto px-6">
         <SectionTitle title="Gallery" subtitle="Discover the artistry behind AURELIA" />
 
-        {/* Desktop Gallery - Auto-scrolling with drag */}
         <div className="hidden md:block mt-10">
           <div className="overflow-hidden mx-auto">
             <div
@@ -226,11 +184,11 @@ export default function Gallery() {
               style={{ cursor: isDragging ? "grabbing" : "grab" }}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
+              onMouseUp={endDrag}
+              onMouseLeave={endDrag}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              onTouchEnd={endDrag}
             >
               {images.map((image, index) => (
                 <div key={index} className="flex-shrink-0 w-80">
@@ -241,7 +199,6 @@ export default function Gallery() {
           </div>
         </div>
 
-        {/* Mobile Gallery - Swipeable */}
         <div className="md:hidden mt-16">
           <div className="relative">
             <div className="overflow-hidden rounded-2xl">
@@ -259,7 +216,6 @@ export default function Gallery() {
               </div>
             </div>
 
-            {/* Navigation buttons */}
             <div className="flex justify-center mt-6 gap-4">
               <Button
                 variant="outline"
@@ -279,7 +235,6 @@ export default function Gallery() {
               </Button>
             </div>
 
-            {/* Dots indicator */}
             <div className="flex justify-center mt-4 gap-2">
               {images.map((_, index) => (
                 <button
@@ -294,7 +249,7 @@ export default function Gallery() {
           </div>
         </div>
       </div>
-      {/* Bottom Decorative Element */}
+
       <div className="text-center mt-6">
         <div className="inline-flex items-center space-x-4">
           <div className="w-12 h-px bg-gradient-to-r from-transparent to-rose-300" />

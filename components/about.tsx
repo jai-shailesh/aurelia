@@ -8,103 +8,93 @@ export default function About() {
   const descriptionRef = useRef<HTMLDivElement>(null)
   const notesRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [isClient, setIsClient] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsClient(true)
+    setIsMounted(true)
   }, [])
 
   useEffect(() => {
-    if (!isClient) return
+    if (!isMounted) return
 
-    const loadGSAP = async () => {
+    const initGSAP = async () => {
+      // NO TIME DELAY - immediate initialization
       const { gsap } = await import("gsap")
       const { ScrollTrigger } = await import("gsap/ScrollTrigger")
 
       gsap.registerPlugin(ScrollTrigger)
+      ScrollTrigger.refresh(true)
 
-      // Wait for next tick to ensure DOM is ready
-      await new Promise((resolve) => setTimeout(resolve, 100))
-
-      // Refresh ScrollTrigger to recalculate positions
-      ScrollTrigger.refresh()
-
-      // Create a timeline for coordinated animations
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 80%",
-          end: "bottom 20%",
-          toggleActions: "play none none reverse",
-          refreshPriority: -1, // Lower priority for better performance
-        },
-      })
-
-      // Set initial states
+      // Set initial states and KEEP them hidden
       gsap.set([titleRef.current, descriptionRef.current?.children, notesRef.current?.children], {
         opacity: 0,
-        y: 40,
-        scale: 0.95,
+        y: 50,
+        scale: 0.9,
+        visibility: "visible",
       })
 
-      // Animate main description box
+      // Create timeline that starts PAUSED
+      const tl = gsap.timeline({ paused: true })
+
       tl.to(titleRef.current, {
         y: 0,
         opacity: 1,
         scale: 1,
-        duration: 0.6,
+        duration: 0.8,
         ease: "power3.out",
       })
+        .to(
+          descriptionRef.current?.children,
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.6,
+            stagger: 0.2,
+            ease: "power2.out",
+          },
+          "-=0.4",
+        )
+        .to(
+          notesRef.current?.children,
+          {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            duration: 0.6,
+            stagger: 0.15,
+            ease: "back.out(1.2)",
+          },
+          "-=0.3",
+        )
 
-      // Animate description content
-      tl.to(
-        descriptionRef.current?.children,
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          stagger: 0.15,
-          ease: "power2.out",
+      // ScrollTrigger controls the timeline - PURE SCROLL BASED
+      ScrollTrigger.create({
+        trigger: sectionRef.current,
+        start: "top 75%",
+        end: "bottom 25%",
+        onEnter: () => {
+          console.log("About section entered")
+          tl.play()
         },
-        "-=0.4",
-      )
+        onLeave: () => tl.reverse(),
+        onEnterBack: () => tl.play(),
+        onLeaveBack: () => tl.reverse(),
+        markers: process.env.NODE_ENV === "development",
+      })
 
-      // Animate notes boxes with quick stagger
-      tl.to(
-        notesRef.current?.children,
-        {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          duration: 0.5,
-          stagger: 0.1,
-          ease: "back.out(1.2)",
-        },
-        "-=0.3",
-      )
+      ScrollTrigger.refresh()
 
-      // Cleanup function
       return () => {
         tl.kill()
         ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
       }
     }
 
-    const cleanup = loadGSAP()
-
-    return () => {
-      cleanup.then((cleanupFn) => cleanupFn && cleanupFn())
-    }
-  }, [isClient])
-
-  // Don't render until client-side
-  if (!isClient) {
-    return <div className="min-h-screen" /> // Placeholder to prevent layout shift
-  }
+    initGSAP()
+  }, [isMounted])
 
   return (
-    <section ref={sectionRef} className="relative py-8 md:py-12 px-4 md:px-6 overflow-hidden">
-      {/* Background Video */}
+    <section ref={sectionRef} className="relative py-8 md:py-12 px-4 md:px-6 overflow-hidden min-h-screen">
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-cover"
@@ -119,17 +109,12 @@ export default function About() {
         <source src="/vids/bg-video.webm" type="video/webm" />
       </video>
 
-      {/* Fallback background for when video doesn't load */}
       <div className="absolute inset-0 bg-gradient-to-br from-rose-100 via-white to-amber-50/30 md:hidden" />
-
-      {/* Dark Overlay for better text readability */}
       <div className="absolute inset-0 bg-black/30 md:bg-black/20" />
 
       <div className="relative max-w-6xl mx-auto">
-        {/* Main Description Box */}
-        <div ref={titleRef} className="mb-6 md:mb-8">
+        <div ref={titleRef} className="mb-6 md:mb-8" style={{ visibility: "hidden" }}>
           <div className="backdrop-blur-md bg-white/15 md:bg-white/10 border border-white/30 md:border-white/20 rounded-2xl md:rounded-3xl p-6 md:p-8 lg:p-10 shadow-2xl">
-            {/* Title */}
             <div className="text-center mb-6 md:mb-8">
               <h2 className="text-4xl md:text-6xl lg:text-7xl font-serif text-white mb-3 md:mb-4 tracking-tight drop-shadow-lg">
                 AURELIA
@@ -140,7 +125,6 @@ export default function About() {
               </p>
             </div>
 
-            {/* Description Content */}
             <div ref={descriptionRef} className="text-center space-y-4 md:space-y-6">
               <p className="text-base md:text-lg lg:text-xl text-white/95 leading-relaxed font-light max-w-3xl mx-auto drop-shadow-sm">
                 AURELIA captures the delicate balance between strength and grace, where each note tells a story of
@@ -156,28 +140,16 @@ export default function About() {
           </div>
         </div>
 
-        {/* Fragrance Notes - 3 Boxes */}
         <div ref={notesRef} className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
           {[
-            {
-              title: "Top Notes",
-              desc: "Bergamot, Pink Pepper, Pear",
-              icon: "🌸",
-            },
-            {
-              title: "Heart Notes",
-              desc: "Rose Petals, Jasmine, Peony",
-              icon: "🌹",
-            },
-            {
-              title: "Base Notes",
-              desc: "Sandalwood, Musk, Vanilla",
-              icon: "🌿",
-            },
+            { title: "Top Notes", desc: "Bergamot, Pink Pepper, Pear", icon: "🌸" },
+            { title: "Heart Notes", desc: "Rose Petals, Jasmine, Peony", icon: "🌹" },
+            { title: "Base Notes", desc: "Sandalwood, Musk, Vanilla", icon: "🌿" },
           ].map((note, index) => (
             <div
               key={index}
               className="group backdrop-blur-md bg-white/15 md:bg-white/10 border border-white/30 md:border-white/20 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-2xl hover:bg-white/20 md:hover:bg-white/15 transition-all duration-500 hover:scale-105 hover:shadow-3xl"
+              style={{ visibility: "hidden" }}
             >
               <div className="text-center">
                 <div className="text-3xl md:text-4xl mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-300 drop-shadow-lg">
@@ -195,7 +167,6 @@ export default function About() {
           ))}
         </div>
 
-        {/* Bottom Decorative Element */}
         <div className="text-center mt-8 md:mt-12">
           <div className="inline-flex items-center space-x-2 md:space-x-4">
             <div className="w-8 md:w-12 h-px bg-gradient-to-r from-transparent to-white/40" />
